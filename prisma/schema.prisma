@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  phone         String?
+  password      String
+  role          String   @default("CONSUMER") // FARMER, CONSUMER, RETAILER, RESTAURANT, INSTITUTION, DELIVERY, ADMIN
+  avatar        String?
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  farmProfile   FarmProfile?
+  products      Product[]
+  orders        Order[]        @relation("BuyerOrders")
+  farmerOrders  Order[]        @relation("FarmerOrders")
+  cart          Cart?
+  reviewsGiven  Review[]       @relation("ReviewAuthor")
+  reviewsReceived Review[]     @relation("ReviewTarget")
+  sentMessages  Message[]      @relation("MessageSender")
+  receivedMessages Message[]   @relation("MessageReceiver")
+  bulkRequirements BulkRequirement[]
+  bulkOffers    BulkOffer[]
+  notifications Notification[]
+}
+
+model FarmProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  farmName     String
+  location     String
+  address      String?
+  farmSize     Float?
+  farmSizeUnit String?  @default("acres")
+  farmingType  String?  @default("Conventional") // Conventional, Organic, Natural
+  description  String?
+  latitude     Float?
+  longitude    Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  icon     String?
+  products Product[]
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  price           Float
+  unit            String   @default("kg") // kg, dozen, litre, piece, bunch
+  quantity        Float    @default(0)
+  minOrderQty     Float?   @default(1)
+  images          String?  // JSON string of image URLs
+  harvestDate     DateTime?
+  freshnessDays   Int?
+  farmingType     String?  @default("Conventional")
+  isAvailable     Boolean  @default(true)
+  isPreOrder      Boolean  @default(false)
+  preOrderDate    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  farmerId        String
+  farmer          User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id])
+
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  reviews         Review[]
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  quantity  Float
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  status          String      @default("PLACED") // PLACED, ACCEPTED, PREPARING, READY, PICKED_UP, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+  totalAmount     Float
+  deliveryFee     Float       @default(0)
+  deliveryAddress String?
+  paymentMethod   String?     @default("COD") // COD, UPI, CARD
+  paymentStatus   String      @default("PENDING") // PENDING, COMPLETED, FAILED, REFUNDED
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  buyerId         String
+  buyer           User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+
+  farmerId        String
+  farmer          User        @relation("FarmerOrders", fields: [farmerId], references: [id])
+
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  quantity  Float
+  price     Float
+  total     Float
+
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  authorId  String
+  author    User     @relation("ReviewAuthor", fields: [authorId], references: [id])
+
+  targetId  String
+  target    User     @relation("ReviewTarget", fields: [targetId], references: [id])
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  senderId   String
+  sender     User    @relation("MessageSender", fields: [senderId], references: [id])
+
+  receiverId String
+  receiver   User    @relation("MessageReceiver", fields: [receiverId], references: [id])
+}
+
+model BulkRequirement {
+  id          String   @id @default(cuid())
+  productName String
+  quantity    Float
+  unit        String   @default("kg")
+  frequency   String?  // weekly, monthly, one-time
+  priceMin    Float?
+  priceMax    Float?
+  duration    String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  buyerId     String
+  buyer       User     @relation(fields: [buyerId], references: [id])
+
+  offers      BulkOffer[]
+}
+
+model BulkOffer {
+  id              String   @id @default(cuid())
+  price           Float
+  quantity        Float
+  message         String?
+  status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt       DateTime @default(now())
+
+  farmerId        String
+  farmer          User     @relation(fields: [farmerId], references: [id])
+
+  requirementId   String
+  requirement     BulkRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, ORDER, ALERT, DEMAND
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

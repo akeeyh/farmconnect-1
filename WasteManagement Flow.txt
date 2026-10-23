@@ -1,0 +1,43 @@
+                 🌾 FARMER
+                     │
+                     ↓
+              Expected Harvest
+                     │
+                     ↓
+              📊 Demand Forecast
+                     │
+                     ↓
+                 Pre-orders
+                     │
+                     ↓
+              Harvest / Listing
+                     │
+                     ↓
+              🛒 Normal Sales
+                     │
+                     ↓
+              Inventory Tracking
+                     │
+                     ↓
+            ⚠️ Surplus Detection
+                     │
+                     ↓
+              AI Buyer Matching
+                     │
+              ┌──────┴──────┐
+              ↓             ↓
+        Bulk Buyers     Local Buyers
+              │             │
+              └──────┬──────┘
+                     ↓
+                Still Surplus?
+                     │
+                    YES
+                     ↓
+             ♻️ Rescue Network
+                     │
+              NGOs / Kitchens
+                     │
+                     ↓
+                  MINIMIZE
+                   WASTE
